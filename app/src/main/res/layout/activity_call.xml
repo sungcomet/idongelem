@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/main_background"
+    >
+
+    <Button
+        android:id="@+id/btncall1"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:onClick="onNum1ButtonClicked"
+        android:textSize="16pt"
+        android:text="☎ 행정실"
+        android:background="#66ffffff"
+
+        />
+
+    <Button
+        android:id="@+id/btncall2"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:textSize="16pt"
+        android:background="#66ffffff"
+        android:onClick="onNum2ButtonClicked"
+        android:text="☎ 교무실" />
+</LinearLayout>
