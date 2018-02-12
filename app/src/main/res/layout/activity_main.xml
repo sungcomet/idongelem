@@ -10,8 +10,7 @@
     android:layout_height="wrap_content"
     android:layout_marginLeft="15dp"
     android:layout_marginRight="15dp"
-    android:weightSum="2"
-    android:layout_centerHorizontal="true">
+    android:weightSum="2">
 
     <Button
         android:id="@+id/btn_tel"

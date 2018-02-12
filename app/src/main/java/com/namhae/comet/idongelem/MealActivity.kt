@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Typeface
 import android.os.AsyncTask
 import android.os.Bundle
+import android.renderscript.Element
 import android.view.LayoutInflater
 import android.widget.FrameLayout
 import kotlinx.android.synthetic.main.activity_meal.*
@@ -35,6 +36,7 @@ class MealActivity : DrawerActivity() {
 
     inner class doit : AsyncTask<Void, Void, Void>() {
         internal var words = ""
+        var menu = ""
 
         override fun doInBackground(vararg params: Void): Void? {
             try {
@@ -42,9 +44,14 @@ class MealActivity : DrawerActivity() {
                 val dates = doc.select("table.tbl_type3>thead>tr>th")
                 val meals = doc.select("table.tbl_type3>tbody>tr:eq(1)>td")
                 val calendar = Calendar.getInstance()
+                if(doc.select("table.tbl_type3>tbody>tr:eq(1)>td").text() == "")
+                    {menu = "식단정보가 없습니다."}
+                else
+                    {menu =meals[calendar.get(Calendar.DAY_OF_WEEK) - 1].text()}
+
 
                 words += (dates[calendar.get(Calendar.DAY_OF_WEEK)].text() + "\n \n "
-                        + meals[calendar.get(Calendar.DAY_OF_WEEK) - 1].text() + "\n\n")
+                        + menu + "\n\n")
 
             } catch (e: Exception) {
                 e.printStackTrace()
