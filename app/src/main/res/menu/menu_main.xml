@@ -6,4 +6,7 @@
         <item android:id="@+id/action_settings"
             android:title="페이지 이동"
             app:showAsAction="ifRoom" />
+        <item android:id="@+id/action_date"
+           android:title="날짜 바꾸기"
+           app:showAsAction="ifRoom" />
     </menu>

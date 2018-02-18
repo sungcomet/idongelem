@@ -19,15 +19,15 @@ class CallActivity : DrawerActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val framelayout = findViewById(R.id.activity_frame) as FrameLayout
+        val framelayout = findViewById<FrameLayout>(R.id.activity_frame)
         val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val activityView = inflater.inflate(R.layout.activity_call, null, false)
         framelayout.addView(activityView)
         supportActionBar!!.setTitle("주요 연락처")
 
 
-        val btncall1 = findViewById(R.id.btncall1) as Button
-        val btncall2 = findViewById(R.id.btncall2) as Button
+        val btncall1 = findViewById<Button>(R.id.btncall1)
+        val btncall2 = findViewById<Button>(R.id.btncall2)
         val type = Typeface.createFromAsset(assets, "fonts/NanumPen.ttf")
 
         btncall1.typeface = type

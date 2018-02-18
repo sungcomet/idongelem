@@ -1,28 +1,27 @@
 package com.namhae.comet.idongelem
 
-import android.app.Activity
 import android.content.Context
 import android.graphics.Typeface
-import android.os.AsyncTask
 import android.os.Bundle
-import android.renderscript.Element
 import android.view.LayoutInflater
+import android.view.Menu
 import android.widget.FrameLayout
+import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_meal.*
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.withContext
 
 import org.jsoup.Jsoup
 import java.util.Calendar
 
-/**
- * Created by comet on 4/3/2017.
- */
 
 class MealActivity : DrawerActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val framelayout = findViewById(R.id.activity_frame) as FrameLayout
+        val framelayout = findViewById<FrameLayout>(R.id.activity_frame)
         val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val activityView = inflater.inflate(R.layout.activity_meal, null, false)
         framelayout.addView(activityView)
@@ -30,38 +29,37 @@ class MealActivity : DrawerActivity() {
 
         val type = Typeface.createFromAsset(assets, "fonts/NanumPen.ttf")
         meal_list.typeface = type
-        doit().execute()
+        doMealparsing(meal_list)
+
+    }
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        menuInflater.inflate(R.menu.menu_main, menu)
+        menu.findItem(R.id.action_settings).isVisible=false
+        return true
 
     }
 
-    inner class doit : AsyncTask<Void, Void, Void>() {
-        internal var words = ""
-        var menu = ""
 
-        override fun doInBackground(vararg params: Void): Void? {
-            try {
-                val doc = Jsoup.connect("http://stu.gne.go.kr/sts_sci_md01_001.do?schulCode=S100001310&schulCrseScCode=2&schulKndScCode=02&schMmealScCode=2").get()
-                val dates = doc.select("table.tbl_type3>thead>tr>th")
-                val meals = doc.select("table.tbl_type3>tbody>tr:eq(1)>td")
-                val calendar = Calendar.getInstance()
-                if(doc.select("table.tbl_type3>tbody>tr:eq(1)>td").text() == "")
-                    {menu = "식단정보가 없습니다."}
-                else
-                    {menu =meals[calendar.get(Calendar.DAY_OF_WEEK) - 1].text()}
-
-
-                words += (dates[calendar.get(Calendar.DAY_OF_WEEK)].text() + "\n \n "
-                        + menu + "\n\n")
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-
-            return null
+fun doMealparsing(mealtext: TextView)
+{
+    var words = ""
+    var menu = ""
+    async {
+        val calendar = Calendar.getInstance()
+        val doc = Jsoup.connect("http://stu.gne.go.kr/sts_sci_md01_001.do?schulCode=S100001310&schulCrseScCode=2&schulKndScCode=02&schMmealScCode=2").get()
+        val dates = doc.select("table.tbl_type3>thead>tr>th")
+        menu = doc.select("table.tbl_type3>tbody>tr:eq(1)>td:eq(${calendar.get(Calendar.DAY_OF_WEEK)})").text()
+        when (menu == "") {true -> menu = "식단정보가 없습니다."
         }
-        override fun onPostExecute(aVoid: Void?) {
-            super.onPostExecute(aVoid)
-            meal_list.text = words
+        words += (dates[calendar.get(Calendar.DAY_OF_WEEK)].text() + "\n \n "
+                + menu + "\n\n")
+
+
+        withContext(UI) {
+            mealtext.text = words
+
         }
+    }
     }
 }

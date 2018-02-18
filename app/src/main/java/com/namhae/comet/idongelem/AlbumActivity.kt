@@ -6,7 +6,10 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.AsyncTask
 import android.os.Bundle
+import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
+import android.support.v7.widget.GridLayoutManager
+import android.support.v7.widget.RecyclerView
 import android.util.TypedValue
 import android.view.*
 import android.widget.*
@@ -18,25 +21,25 @@ import java.sql.Types
 import java.util.ArrayList
 import java.util.HashMap
 import kotlinx.android.synthetic.main.activity_album.*
-import java.lang.ref.WeakReference
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.withContext
 
 class AlbumActivity : DrawerActivity(){
 
-
-    internal var arraylist = ArrayList<HashMap<String, String>>()
     private var pages = ArrayList<String>()
     internal var lastnum = Types.NULL
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val framelayout = findViewById(R.id.activity_frame) as FrameLayout
+        val framelayout = findViewById<FrameLayout>(R.id.activity_frame)
         val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val activityView = inflater.inflate(R.layout.activity_album, null, false)
         framelayout.addView(activityView)
         supportActionBar!!.setTitle("우리학교앨범")
 
-        val Pagenum = findViewById(R.id.albumpage) as TextView
+        val Pagenum = findViewById<TextView>(R.id.albumpage)
         val Pagenumber = Pagenum.text.toString()
 
 
@@ -51,13 +54,11 @@ class AlbumActivity : DrawerActivity(){
             pages.add(Integer.toString(i))
         }
 
-        doit().execute(Pagenumber)
-        val yourListView = findViewById(R.id.gridview) as GridView
-        yourListView.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
-            val url = arraylist[position][URL]
-            val myIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            startActivity(myIntent)
-        }
+        doAlbumparsing(gridview,this@AlbumActivity, Pagenumber)
+        val adapter =GridViewAdapter(this, AlbumActivity.arraylist)
+        gridview.adapter = adapter
+        AlbumActivity.gridLayoutManager = GridLayoutManager(this, 3)
+        gridview.layoutManager = AlbumActivity.gridLayoutManager
 
         buttonforward.setOnClickListener {
             var Pagenumber = Pagenum.text.toString()
@@ -65,8 +66,7 @@ class AlbumActivity : DrawerActivity(){
             if (Integer.parseInt(Pagenumber) < lastnum) {
                 Pagenumber = Integer.toString(Integer.parseInt(Pagenumber) + 1)
                 Pagenum.text = Pagenumber
-                doit().execute(Pagenumber)
-            }
+                doAlbumparsing(gridview,this@AlbumActivity, Pagenumber)            }
         }
         buttonbackward.setOnClickListener {
             var Pagenumber = Pagenum.text.toString()
@@ -74,8 +74,7 @@ class AlbumActivity : DrawerActivity(){
             if (Integer.parseInt(Pagenumber) > 1) {
                 Pagenumber = Integer.toString(Integer.parseInt(Pagenumber) - 1)
                 Pagenum.text = Pagenumber
-                doit().execute(Pagenumber)
-            }
+                doAlbumparsing(gridview,this@AlbumActivity, Pagenumber)            }
         }
     }
 
@@ -90,12 +89,11 @@ class AlbumActivity : DrawerActivity(){
         when (item.itemId) {
             R.id.action_settings -> {
                 val buider = AlertDialog.Builder(this)//AlertDialog.Builder 객체 생성 
-                val adapter = ArrayAdapter<String>(this, android.R.layout.select_dialog_singlechoice, pages)
+                val adapter = ArrayAdapter(this, android.R.layout.select_dialog_singlechoice, pages)
                 buider.setTitle("페이지를 선택하세요")//Dialog 제목
 
                 buider.setAdapter(adapter) { dialog, which ->
-                    doit().execute(Integer.toString(which + 1),
-                            "1")
+                    doAlbumparsing(gridview,this@AlbumActivity, Integer.toString(which + 1))
                     albumpage.text = java.lang.String.format("%s", which + 1)
                 }
                 val a = buider.create()
@@ -109,53 +107,6 @@ class AlbumActivity : DrawerActivity(){
         super.onConfigurationChanged(newConfig)
     }
 
-inner class doit : AsyncTask<String, Void, Void>() {
-
-
-       private val progressBar = progressbar
-        private var progressBarStatus = 0
-
-        override fun onPreExecute() {
-            progressBar.setVisibility(View.VISIBLE)
-            super.onPreExecute()
-
-        }
-
-        override fun doInBackground(vararg what: String): Void? {
-            arraylist = ArrayList()
-
-            try {
-                val doc = Jsoup.connect("http://idong-p.gne.go.kr/index.jsp?mnu=M001006007&SCODE=S0000000294&frame=&search_field=&search_word=&category1=&category2=&category3=&search_year=&cmd=list&page=" + what[0] + "&nPage=1").get()
-                val dates = doc.select("table")
-
-                for (row in dates.select("td")) {
-                    val links = row.select("a[href]")
-                    val divs = row.select("div.image img[src]")
-                    val map = HashMap<String, String>()
-                    map.put("albumtitle", divs[0].attr("alt"))
-                    map.put("picture", divs[0].attr("abs:src"))
-                    map.put("url", links[0].attr("abs:href"))
-                    arraylist.add(map)
-                    progressBarStatus+=10
-                    progressBar.progress = progressBarStatus
-
-                }
-
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-
-            return null
-        }
-
-        override fun onPostExecute(aVoid: Void?) {
-            super.onPostExecute(aVoid)
-            val adapter = GridViewAdapter(this@AlbumActivity, arraylist)
-            gridview.adapter = adapter
-            progressBar.setVisibility(View.INVISIBLE)
-        }
-    }
 
 
      class getlastnum : AsyncTask<Void, Void, Int>() {
@@ -186,61 +137,104 @@ inner class doit : AsyncTask<String, Void, Void>() {
     }
 
     companion object {
+        lateinit var gridLayoutManager: GridLayoutManager
+        internal var arraylist = ArrayList<HashMap<String, String>>()
 
         internal var ALBUMTITLE = "albumtitle"
         internal var PICTURE = "picture"
         internal var URL = "url"
     }
-    internal class GridViewAdapter(// Declare Variables
-            var context: Context,
-            var data: ArrayList<HashMap<String, String>>) : BaseAdapter() {
 
-        var resultp = HashMap<String, String>()
+}
 
-        override fun getCount(): Int {
-            return data.size
+fun doAlbumparsing(listView: RecyclerView, context: Context, page_number: String)
+{
+    async {
+            AlbumActivity.arraylist = ArrayList()
+
+
+            val doc = Jsoup.connect("http://idong-p.gne.go.kr/index.jsp?mnu=M001006007&SCODE=S0000000294&frame=&search_field=&search_word=&category1=&category2=&category3=&search_year=&cmd=list&page=$page_number&nPage=1").get()
+            val dates = doc.select("table")
+
+            for (row in dates.select("td")) {
+                val links = row.select("a[href]")
+                val divs = row.select("div.image img[src]")
+                val map = HashMap<String, String>()
+                map.put("albumtitle", divs[0].attr("alt"))
+                map.put("picture", divs[0].attr("abs:src"))
+                map.put("url", links[0].attr("abs:href"))
+                AlbumActivity.arraylist.add(map)
+
+
+
+
         }
 
-        override fun getItem(position: Int): Any? {
-            return null
-        }
+        withContext(UI) {
+            val adapter = GridViewAdapter(context, AlbumActivity.arraylist)
+            listView.adapter=adapter
 
-        override fun getItemId(position: Int): Long {
-            return 0
-        }
-
-        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-            // Declare Variables
-            val albumtitle: TextView
-            val picture: ImageView
-
-            val inflater = context
-                    .getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-
-            val itemView = inflater.inflate(R.layout.albumlistview_item, parent, false)
-            // Get the position
-            resultp = data[position]
-
-
-            // Locate the TextViews in listview_item.xml
-            albumtitle = itemView.findViewById(R.id.albumtitle) as TextView
-            picture = itemView.findViewById(R.id.picture) as ImageView
-            // Locate the ImageView in listview_item.xml
-
-
-            // Capture position and set results to the TextViews
-            albumtitle.text = resultp[AlbumActivity.ALBUMTITLE]
-            albumtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14.0f)
-            Picasso.with(context).load(resultp[AlbumActivity.PICTURE]).memoryPolicy(MemoryPolicy.NO_CACHE)
-                    .networkPolicy(NetworkPolicy.NO_CACHE)
-                    .fit().into(picture)
-            //new ImageLoaderTask(picture).execute(resultp.get(MainActivity.PICTURE));
-
-
-            return itemView
         }
     }
 }
 
 
+class GridViewAdapter(
+        var context: Context,
+        var data: ArrayList<HashMap<String, String>>) : RecyclerView.Adapter<GridViewAdapter.ViewHolder>() {
+
+    var resultp = HashMap<String, String>()
+
+    override fun getItemCount(): Int {
+        return data.size
+    }
+
+    override fun getItemId(position: Int): Long {
+        return 0
+    }
+    override fun onCreateViewHolder(parent: ViewGroup?, viewType: Int): GridViewAdapter.ViewHolder {
+        val inflater = context
+                .getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+        val v=  inflater.inflate(R.layout.albumlistview_item, parent, false)
+
+        return ViewHolder(v)
+    }
+    override fun onBindViewHolder(holder: ViewHolder, position: Int){
+        resultp = data[position]
+        holder.albumtitle.text = resultp[AlbumActivity.ALBUMTITLE]
+        holder.albumtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15.0f)
+        holder.url = resultp[AlbumActivity.URL]
+        Picasso.with(context).load(resultp[AlbumActivity.PICTURE]).memoryPolicy(MemoryPolicy.NO_CACHE)
+                .networkPolicy(NetworkPolicy.NO_CACHE)
+                .fit().into(holder.picture)
+        holder.setOnitemClickListener(object : ItemClickListener{
+            override fun onItemClickListenser(view: View, pos: Int) {
+                val myIntent = Intent(Intent.ACTION_VIEW, Uri.parse(holder.url))
+                ContextCompat.startActivity(context, myIntent, null)
+            }
+        })
+
+    }
+    class ViewHolder(view:View): RecyclerView.ViewHolder(view), View.OnClickListener{
+        var albumtitle : TextView
+        var picture : ImageView
+        init {
+            albumtitle = view.findViewById<TextView>(R.id.albumtitle)
+            picture = view.findViewById<ImageView>(R.id.picture)
+            view.setOnClickListener(this)
+        }
+        var url: String?=null
+        var mlistener : ItemClickListener?=null
+        fun setOnitemClickListener(itemClickListener: ItemClickListener)
+        {
+            this.mlistener = itemClickListener
+        }
+
+        override fun onClick(p0: View?) {
+            this.mlistener!!.onItemClickListenser(p0!!, adapterPosition)
+        }
+    }
+
+
+}
 

@@ -20,14 +20,14 @@ class StudentClassActivity : DrawerActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val framelayout = findViewById(R.id.activity_frame) as FrameLayout
+        val framelayout = findViewById<FrameLayout>(R.id.activity_frame)
         val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val activityView = inflater.inflate(R.layout.activity_student_class, null, false)
         framelayout.addView(activityView)
         supportActionBar!!.setTitle("우리반홈페이지")
 
         getClass().execute()
-        val yourListView = findViewById(R.id.listview_class) as ListView
+        val yourListView = findViewById<ListView>(R.id.listview_class)
         yourListView.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
             val url = arraylist[position][URL]
             val myIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
@@ -62,7 +62,7 @@ class StudentClassActivity : DrawerActivity() {
         }
         override fun onPostExecute(aVoid: Void?) {
             super.onPostExecute(aVoid)
-            val listview = findViewById(R.id.listview_class) as ListView
+            val listview = findViewById<ListView>(R.id.listview_class)
             val adapter = ClassListViewAdapter(this@StudentClassActivity, arraylist)
             listview.adapter = adapter
         }
@@ -105,8 +105,8 @@ class StudentClassActivity : DrawerActivity() {
 
             // Locate the TextViews in listview_item.xml
             val type = Typeface.createFromAsset(assets, "fonts/NanumPen.ttf")
-            grade = itemView.findViewById(R.id.grade) as TextView
-            class_name = itemView.findViewById(R.id.class_name) as TextView
+            grade = itemView.findViewById(R.id.grade)
+            class_name = itemView.findViewById(R.id.class_name)
             grade.typeface = type
             class_name.typeface =type
             // Locate the ImageView in listview_item.xml
