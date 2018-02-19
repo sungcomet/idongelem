@@ -1,22 +1,28 @@
 package com.namhae.comet.idongelem
 
+import android.app.DatePickerDialog
 import android.content.Context
 import android.graphics.Typeface
 import android.os.Bundle
+import android.support.v7.app.AlertDialog
 import android.view.LayoutInflater
 import android.view.Menu
-import android.widget.FrameLayout
-import android.widget.TextView
+import android.view.MenuItem
+import android.widget.*
+import kotlinx.android.synthetic.main.activity_board.*
 import kotlinx.android.synthetic.main.activity_meal.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.withContext
 
 import org.jsoup.Jsoup
-import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 class MealActivity : DrawerActivity() {
+    val cal = Calendar.getInstance()
+    lateinit var mDateSetListener : DatePickerDialog.OnDateSetListener
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,9 +33,19 @@ class MealActivity : DrawerActivity() {
         framelayout.addView(activityView)
         supportActionBar!!.setTitle("급식정보")
 
+
+        mDateSetListener= object: DatePickerDialog.OnDateSetListener{
+            override fun onDateSet(view: DatePicker, year: Int, month: Int, dayOfMonth: Int) {
+                cal.set(Calendar.YEAR, year)
+                cal.set(Calendar.MONTH, month)
+                cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                updateDateInView()
+
+            }
+        }
         val type = Typeface.createFromAsset(assets, "fonts/NanumPen.ttf")
         meal_list.typeface = type
-        doMealparsing(meal_list)
+        updateDateInView()
 
     }
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -39,20 +55,29 @@ class MealActivity : DrawerActivity() {
         return true
 
     }
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.action_date -> {
+                DatePickerDialog(this@MealActivity, mDateSetListener,
+                        cal.get(Calendar.YEAR),cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+             }
+        }
+        return true
+    }
 
 
-fun doMealparsing(mealtext: TextView)
+fun doMealparsing(date:String,dayofweek:Int, mealtext: TextView)
 {
     var words = ""
     var menu = ""
     async {
         val calendar = Calendar.getInstance()
-        val doc = Jsoup.connect("http://stu.gne.go.kr/sts_sci_md01_001.do?schulCode=S100001310&schulCrseScCode=2&schulKndScCode=02&schMmealScCode=2").get()
+        val doc = Jsoup.connect("http://stu.gne.go.kr/sts_sci_md01_001.do?schYmd=$date&schulCode=S100001310&schulCrseScCode=2&schulKndScCode=02&schMmealScCode=2").get()
         val dates = doc.select("table.tbl_type3>thead>tr>th")
-        menu = doc.select("table.tbl_type3>tbody>tr:eq(1)>td:eq(${calendar.get(Calendar.DAY_OF_WEEK)})").text()
+        menu = doc.select("table.tbl_type3>tbody>tr:eq(1)>td:eq($dayofweek)").text()
         when (menu == "") {true -> menu = "식단정보가 없습니다."
         }
-        words += (dates[calendar.get(Calendar.DAY_OF_WEEK)].text() + "\n \n "
+        words += (dates[dayofweek].text() + "\n \n "
                 + menu + "\n\n")
 
 
@@ -62,4 +87,8 @@ fun doMealparsing(mealtext: TextView)
         }
     }
     }
+    private fun updateDateInView(){
+        val myFormat="yyyy.MM.dd"
+        val sdf=SimpleDateFormat(myFormat, Locale.KOREA)
+        doMealparsing(sdf.format(cal.time),cal.get(Calendar.DAY_OF_WEEK), meal_list)    }
 }
